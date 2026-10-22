@@ -354,8 +354,11 @@ and `make test` use them. `make fmt` runs `nix fmt` and does not work here;
 format Go with `gofumpt` and `golangci-lint run --fix`.
 
 `make test` is `CGO_ENABLED=1 go test -race ./...`. It needs `tofu` and
-`tscli` on `PATH` (`hscontrol/servertest`). The Docker daemon is started on
-boot. `go run ./cmd/hi doctor` before an integration run.
+`tscli` on `PATH` (`hscontrol/servertest`). The full `hscontrol/servertest`
+package did not finish within 25 minutes under `-race` on this VM.
+`go test -race ./hscontrol/servertest/ -run 'TestAPIv2$|TestAPIv2OAuthScopes'`
+passes. The Docker daemon is started on boot. `go run ./cmd/hi doctor`
+before an integration run.
 
 `go run ./cmd/dev` listens on `http://127.0.0.1:8080` (`/health` returns
 200) and then exits. `users create -o json` emits `id` as a string, and
