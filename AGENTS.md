@@ -343,3 +343,33 @@ a broken one.
   and `HEADSCALE_DEBUG_INSECURE_TLS_LISTEN_ADDR`, and the CLI commands
   `hs-authkey` calls. Breaking it needs a "NixOS test kit" BREAKING entry
   in `CHANGELOG.md`.
+
+## Cursor Cloud specific instructions
+
+Nix is not installed. These tools are already on `PATH`: Go 1.27.2
+(`GOTOOLCHAIN=local`), golangci-lint 2.15.0, gofumpt 0.12.0, prettier
+3.9.10, mdformat, Node 24.22.1, pnpm 10.4.0, Docker 29.9.2 (fuse-overlayfs,
+iptables-legacy), OpenTofu 1.13.2, and tscli 0.3.0. `make build`, `make lint`,
+and `make test` use them. `make fmt` runs `nix fmt` and does not work here;
+format Go with `gofumpt` and `golangci-lint run --fix`.
+
+`make test` is `CGO_ENABLED=1 go test -race ./...`. It needs `tofu` and
+`tscli` on `PATH` (`hscontrol/servertest`). The full `hscontrol/servertest`
+package did not finish within 25 minutes under `-race` on this VM.
+`go test -race ./hscontrol/servertest/ -run 'TestAPIv2$|TestAPIv2OAuthScopes'`
+passes. The Docker daemon is started on boot. `go run ./cmd/hi doctor`
+before an integration run.
+
+`go run ./cmd/dev` listens on `http://127.0.0.1:8080` (`/health` returns
+200) and then exits. `users create -o json` emits `id` as a string, and
+`cmd/dev` unmarshals that field as a uint64. Serve the built binary with
+`headscale serve -c <config>` when a long-running process is needed. Ports
+8080 and 9090 are shared with Headplane's compose file.
+
+Root can create a TUN device (`/dev/net/tun` exists; WireGuard 1.0.0 is
+built in). Unprivileged processes cannot: effective capabilities are empty.
+`/lib/modules` is absent, so extra kernel modules cannot be loaded.
+`/dev/kvm` is readable by root. Integration containers that need a TUN
+device must be privileged, or have `NET_ADMIN` and `--device /dev/net/tun`.
+Host-network containers do not see `/dev/net/tun` unless one of those is
+set. A nested VM is not required for that Docker path.
